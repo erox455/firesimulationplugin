@@ -4,6 +4,7 @@
 #include "Modules/ModuleManager.h"
 #include "GridActor.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "FMaterialSelectionCustomization.h"
 
 class FFireSimulationEditorModule : public IModuleInterface
 {

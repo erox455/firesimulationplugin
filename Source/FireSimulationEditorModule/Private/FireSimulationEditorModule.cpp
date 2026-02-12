@@ -17,6 +17,8 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 #include "Misc/ConfigCacheIni.h"
+#include "PropertyEditorModule.h"
+#include "FireSimulationComponent.h"
 
 static const FName FireSimulationTabName("FireSimulation");
 
@@ -27,11 +29,23 @@ void FFireSimulationEditorModule::StartupModule()
     FGlobalTabmanager::Get()->RegisterNomadTabSpawner(FireSimulationTabName, FOnSpawnTab::CreateRaw(this, &FFireSimulationEditorModule::OnSpawnPluginTab))
         .SetDisplayName(LOCTEXT("FFireSimulationTabTitle", "Fire Simulation"))
         .SetMenuType(ETabSpawnerMenuType::Enabled);
+
+    FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+    PropertyEditorModule.RegisterCustomClassLayout(
+        UFireSimulationComponent::StaticClass()->GetFName(),
+        FOnGetDetailCustomizationInstance::CreateStatic(&FMaterialSelectionCustomization::MakeInstance)
+    );
 }
 
 void FFireSimulationEditorModule::ShutdownModule()
 {
     FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(FireSimulationTabName);
+
+    if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+    {
+        FPropertyEditorModule& PropertyModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+        PropertyModule.UnregisterCustomClassLayout(UFireSimulationComponent::StaticClass()->GetFName());
+    }
 }
 
 TSharedRef<SDockTab> FFireSimulationEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
@@ -44,7 +58,7 @@ TSharedRef<SDockTab> FFireSimulationEditorModule::OnSpawnPluginTab(const FSpawnT
         TEXT("FireSimulationSettings"),
         TEXT("FireParticle"),
         AssetPath,
-        GEditorPerProjectIni
+        GGameIni
     ))
     {
         Asset = LoadObject<UParticleSystem>(nullptr, *AssetPath);
@@ -55,7 +69,7 @@ TSharedRef<SDockTab> FFireSimulationEditorModule::OnSpawnPluginTab(const FSpawnT
         TEXT("FireSimulationSettings"),
         TEXT("CubesAmount"),
         LoadedCubesAmount,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     FString LoadedThreads;
@@ -63,7 +77,7 @@ TSharedRef<SDockTab> FFireSimulationEditorModule::OnSpawnPluginTab(const FSpawnT
         TEXT("FireSimulationSettings"),
         TEXT("Threads"),
         LoadedThreads,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     FString LoadedFireSize;
@@ -71,7 +85,7 @@ TSharedRef<SDockTab> FFireSimulationEditorModule::OnSpawnPluginTab(const FSpawnT
         TEXT("FireSimulationSettings"),
         TEXT("FireSize"),
         LoadedFireSize,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     FString LoadedUnitsPerMeter = "";
@@ -79,7 +93,7 @@ TSharedRef<SDockTab> FFireSimulationEditorModule::OnSpawnPluginTab(const FSpawnT
         TEXT("FireSimulationSettings"),
         TEXT("UnitsPerMeter"),
         LoadedUnitsPerMeter,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     FText FireParticleText = LOCTEXT("PickActorClassButtonText", "Pick Fire Visualisation");
@@ -255,30 +269,30 @@ FReply FFireSimulationEditorModule::OnFillGridClicked()
         TEXT("FireSimulationSettings"),
         TEXT("CubesAmount"),
         *CubesAmountText,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     GConfig->SetString(
         TEXT("FireSimulationSettings"),
         TEXT("Threads"),
         *ThreadsText,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     GConfig->SetString(
         TEXT("FireSimulationSettings"),
         TEXT("FireSize"),
         *FireSizeText,
-        GEditorPerProjectIni
+        GGameIni
     );
 
     GConfig->SetString(
         TEXT("FireSimulationSettings"),
         TEXT("UnitsPerMeter"),
         *UnitsPerMeterText,
-        GEditorPerProjectIni
+        GGameIni
     );
-    GConfig->Flush(false, GEditorPerProjectIni);
+    GConfig->Flush(false, GGameIni);
 
     return FReply::Handled();
 }
@@ -296,7 +310,7 @@ FReply FFireSimulationEditorModule::OnPickActorClassClicked()
                 TEXT("FireSimulationSettings"),
                 TEXT("FireParticle"),
                 *SelectedParticleSystem->GetPathName(),
-                GEditorPerProjectIni
+                GGameIni
             );
 
             ShowNotification("Fire Visualisation was picked!");
@@ -339,15 +353,15 @@ void FFireSimulationEditorModule::DrawGrid(bool bVisible, UWorld* World, AGridAc
 
     FVector GridSize = BoxExtent * 2;
 
-    // Вычисляем количество ячеек по каждой оси
+    //      
     int32 CellsX = FMath::CeilToInt(GridSize.X / CellSize);
     int32 CellsY = FMath::CeilToInt(GridSize.Y / CellSize);
     int32 CellsZ = FMath::CeilToInt(GridSize.Z / CellSize);
 
-    // Все ячейки должны быть одинакового размера
+    //      
     FVector CellSizeVector(CellSize, CellSize, CellSize);
 
-    // Вычисление дополнительного количества ячеек, выходящих за границы
+    //    ,   
     float TotalCellSizeX = CellsX * CellSize;
     float TotalCellSizeY = CellsY * CellSize;
     float TotalCellSizeZ = CellsZ * CellSize;
@@ -356,7 +370,7 @@ void FFireSimulationEditorModule::DrawGrid(bool bVisible, UWorld* World, AGridAc
     float ExtraCellsY = (TotalCellSizeY - GridSize.Y) / 2;
     float ExtraCellsZ = (TotalCellSizeZ - GridSize.Z) / 2;
 
-    // Корректируем начальную точку, чтобы сетка была симметричной
+    //   ,    
     FVector AdjustedOrigin = Origin - FVector(ExtraCellsX, ExtraCellsY, ExtraCellsZ);
 
     FlushPersistentDebugLines(World);

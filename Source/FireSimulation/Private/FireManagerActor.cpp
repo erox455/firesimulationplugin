@@ -10,13 +10,6 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Engine/Engine.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/SWindow.h"
-#include "Widgets/DeclarativeSyntaxSupport.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Framework/Application/SlateApplication.h"
-#include "Widgets/Layout/SBorder.h"
-#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AFireManagerActor::AFireManagerActor()
@@ -27,79 +20,7 @@ AFireManagerActor::AFireManagerActor()
 
 void AFireManagerActor::ShowWarningDialog(FString Message)
 {
-	TSharedPtr<SWindow> DialogWindow = SNew(SWindow)
-		.Title(FText::FromString("Warning"))
-		.ClientSize(FVector2D(400, 200))
-		.SupportsMinimize(false)
-		.SupportsMaximize(false)
-		.IsTopmostWindow(true)
-		.SizingRule(ESizingRule::FixedSize);
-
-	TSharedPtr<SBorder> DialogContent = SNew(SBorder)
-		.Padding(10)
-		.Content()
-		[
-			SNew(SVerticalBox)
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5, 20) // Увеличиваем вертикальные отступы
-				[
-					SNew(STextBlock)
-						.Text(FText::FromString(Message))
-						.AutoWrapText(true) // Включаем автоматический перенос текста
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.HAlign(HAlign_Right)
-				.Padding(5)
-				[
-					SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5)
-						[
-							SNew(SButton)
-								.Text(FText::FromString("OK"))
-								.OnClicked_Lambda([DialogWindow]()
-									{
-										DialogWindow->RequestDestroyWindow();
-										return FReply::Handled();
-									})
-						]
-
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.Padding(5)
-						[
-							SNew(SButton)
-								.Text(FText::FromString("Cancel"))
-								.OnClicked_Lambda([this, DialogWindow]()
-									{
-										DialogWindow->RequestDestroyWindow();
-										if (GEngine && GEngine->GameViewport)
-										{
-											UGameplayStatics::OpenLevel(GetWorld(), FName("MainMenu"));
-										}
-										return FReply::Handled();
-									})
-						]
-				]
-		];
-
-	DialogWindow->SetContent(DialogContent.ToSharedRef());
-
-	if (GEngine && GEngine->GameViewport)
-	{
-		TSharedPtr<SWindow> ParentWindow = GEngine->GameViewport->GetWindow();
-		if (ParentWindow.IsValid())
-		{
-			FSlateApplication::Get().AddModalWindow(DialogWindow.ToSharedRef(), ParentWindow, false);
-		}
-	}
-	
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *Message);
 }
 
 // Called when the game starts or when spawned
@@ -138,7 +59,7 @@ void AFireManagerActor::BeginPlay()
 		TEXT("FireSimulationSettings"),
 		TEXT("FireParticle"),
 		AssetPath,
-		GEditorPerProjectIni
+		GGameIni
 	))
 	{
 		Asset = LoadObject<UParticleSystem>(nullptr, *AssetPath);
@@ -149,7 +70,7 @@ void AFireManagerActor::BeginPlay()
 		TEXT("FireSimulationSettings"),
 		TEXT("CubesAmount"),
 		LoadedCellSize,
-		GEditorPerProjectIni
+		GGameIni
 	);
 
 	FString LoadedThreads = "";
@@ -157,7 +78,7 @@ void AFireManagerActor::BeginPlay()
 		TEXT("FireSimulationSettings"),
 		TEXT("Threads"),
 		LoadedThreads,
-		GEditorPerProjectIni
+		GGameIni
 	);
 
 	FString LoadedFireSize = "";
@@ -165,7 +86,7 @@ void AFireManagerActor::BeginPlay()
 		TEXT("FireSimulationSettings"),
 		TEXT("FireSize"),
 		LoadedFireSize,
-		GEditorPerProjectIni
+		GGameIni
 	);
 
 	FString LoadedUnitsPerMeter = "";
@@ -173,7 +94,7 @@ void AFireManagerActor::BeginPlay()
 		TEXT("FireSimulationSettings"),
 		TEXT("UnitsPerMeter"),
 		LoadedUnitsPerMeter,
-		GEditorPerProjectIni
+		GGameIni
 	);
 
 	int32 CellSize = FCString::Atoi(*LoadedCellSize);
@@ -186,8 +107,6 @@ void AFireManagerActor::BeginPlay()
 	InitializeGrid(CellSize, Threads, FireSize, Asset);
 	InitializeFireSpread();
 
-	FEditorDelegates::EndPIE.AddUObject(this, &AFireManagerActor::OnEndPIE);
-	
 }
 
 float AFireManagerActor::GetSpreadFactor(float LinearSpeed) const{
@@ -221,10 +140,10 @@ void AFireManagerActor::StartFireThread(int32 CellSize, int32 NewThreads, int32 
 		}
 		});
 
-	FEditorDelegates::EndPIE.AddUObject(this, &AFireManagerActor::OnEndPIE);
 }
 
 // After the game ends in the editor, return all burned actors to their places and extinguish the fire
+#if WITH_EDITOR
 void AFireManagerActor::OnEndPIE(const bool bIsSimulating)
 {
     UE_LOG(LogTemp, Warning, TEXT("GAME ENDED"));
@@ -246,6 +165,7 @@ void AFireManagerActor::OnEndPIE(const bool bIsSimulating)
     //    SmokeManager = nullptr;
     //}
 }
+#endif
 
 // Called every frame
 void AFireManagerActor::Tick(float DeltaTime)
