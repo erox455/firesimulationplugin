@@ -40,7 +40,7 @@ void USmokeManager::Initialize(UWorld* World) {
 		TEXT("FireSimulationSettings"),
 		TEXT("UnitsPerMeter"),
 		LoadedUnitsPerMeter,
-		GEditorPerProjectIni
+		GGameIni
 	);
 
 	UnitsPerMeter = FCString::Atoi(*LoadedUnitsPerMeter);

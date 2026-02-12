@@ -84,7 +84,7 @@ void UFireGridManager::PopulateGridWithActors()
 	FVector GridSize = BoxComponent->GetScaledBoxExtent() * 2; // Get full size of the box
 	FVector CellSizeVector(GridSize.X / ElementsAmountX, GridSize.Y / ElementsAmountY, GridSize.Z / ElementsAmountZ);
 
-	// Вычисление дополнительного количества ячеек, выходящих за границы
+	//    ,   
 	float TotalCellSizeX = ElementsAmountX * CellSizeVector.X;
 	float TotalCellSizeY = ElementsAmountY * CellSizeVector.Y;
 	float TotalCellSizeZ = ElementsAmountZ * CellSizeVector.Z;
@@ -93,7 +93,7 @@ void UFireGridManager::PopulateGridWithActors()
 	float ExtraCellsY = (TotalCellSizeY - GridSize.Y) / 2;
 	float ExtraCellsZ = (TotalCellSizeZ - GridSize.Z) / 2;
 
-	// Корректируем начальную точку, чтобы сетка была симметричной
+	//   ,    
 	FVector AdjustedOrigin = BoxComponent->GetComponentLocation() - FVector(TotalCellSizeX / 2, TotalCellSizeY / 2, TotalCellSizeZ / 2);
 
 	FCollisionQueryParams QueryParams;
@@ -257,22 +257,30 @@ void UFireGridManager::CreateFireActor(FGridCell* Cell)
 		}
 	}
 
-	try {
-		UParticleSystem* SelectedParticleSystem = Cast<UParticleSystem>(SelectedParticleFire);
-		UParticleSystemComponent* ParticleSystemComponent = NewObject<UParticleSystemComponent>(SpawnedActor, UParticleSystemComponent::StaticClass());
-		SpawnedActor->AddInstanceComponent(ParticleSystemComponent);
-		ParticleSystemComponent->SetTemplate(SelectedParticleSystem);
-		ParticleSystemComponent->RegisterComponent();
-		ParticleSystemComponent->SetWorldLocation(CellCenter);
-		ParticleSystemComponent->SetVisibility(true);
-		ParticleSystemComponent->Activate();
-		SpawnedActor->RegisterAllComponents();
-
-		Cell->FireActor = SpawnedActor;
-	}
-	catch(...){
+	UParticleSystem* SelectedParticleSystem = Cast<UParticleSystem>(SelectedParticleFire);
+	if (!SpawnedActor || !SelectedParticleSystem)
+	{
 		UE_LOG(LogTemp, Warning, TEXT("ERROR CREATING FIRE ACTOR"));
+		return;
 	}
+
+	UParticleSystemComponent* ParticleSystemComponent = NewObject<UParticleSystemComponent>(SpawnedActor, UParticleSystemComponent::StaticClass());
+	if (!ParticleSystemComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ERROR CREATING FIRE ACTOR"));
+		return;
+	}
+
+	SpawnedActor->AddInstanceComponent(ParticleSystemComponent);
+	ParticleSystemComponent->SetTemplate(SelectedParticleSystem);
+	ParticleSystemComponent->RegisterComponent();
+	ParticleSystemComponent->SetWorldLocation(CellCenter);
+	ParticleSystemComponent->SetVisibility(true);
+	ParticleSystemComponent->Activate();
+	SpawnedActor->RegisterAllComponents();
+
+	Cell->FireActor = SpawnedActor;
+
 }
 
 void UFireGridManager::RemoveBurntActor(FGridCell* StartCell) {

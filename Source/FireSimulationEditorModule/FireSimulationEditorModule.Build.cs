@@ -5,13 +5,12 @@ public class FireSimulationEditorModule : ModuleRules
     public FireSimulationEditorModule(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-        
+
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
                 "Core",
-                "FireSimulation",                
-                // Другие зависимости модулей...
+                "FireSimulation"
             }
             );
 
@@ -23,15 +22,11 @@ public class FireSimulationEditorModule : ModuleRules
                 "Slate",
                 "SlateCore",
                 "UnrealEd",
-                "EditorStyle",
                 "InputCore",
                 "AssetTools",
                 "ContentBrowser",
-                // Важно для модулей редактора
-                // Другие зависимости модулей...
+                "PropertyEditor"
             }
             );
-
-        // Если вы используете сторонние библиотеки, добавьте их здесь...
     }
 }
